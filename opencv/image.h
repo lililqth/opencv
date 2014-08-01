@@ -1,6 +1,7 @@
 #ifndef IMAGE_H
 #define IMAGE_H
 #include <opencv2/opencv.hpp>  
+#include <vector>
 using namespace cv;
 class Lines
 {
@@ -15,10 +16,9 @@ public:
 };
 class Image
 {
-
-
 public:
 	void houghTransform(IplImage*, CvSeq*, int);
+	void houghTransform(IplImage*, vector<Lines>*, int);
 	void icvHoughLinesStandard( const CvMat* img, float rho, float theta, int threshold, CvSeq *lines, int linesMax);
 	void HoughDraw(IplImage *dst, Vector<Lines> *lineCollector);
 	void GrayStretch(IplImage *src);

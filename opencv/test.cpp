@@ -4,8 +4,8 @@
 using namespace cv; 
 using namespace std;
 
-const int thresholdTheta = 10;
-const int thresholdLength = 10;
+const int thresholdTheta = 2;
+const int thresholdLength = 2;
 const int offsetThresholdTheta = 15;
 const int offsetThresholdLength = 15;
 vector<int> thetaStatus(180);
@@ -36,13 +36,43 @@ inline bool Judge(int actual, int standard, int threshold)
 }
 int main(int argc, char *argv[])  
 {  
+	/*Image img;
+	IplImage* image = cvLoadImage("../1.jpg");
+	IplImage* imageDst = cvCreateImage(cvGetSize(image),IPL_DEPTH_8U,1) ;    
+	img.Graying(image, imageDst);
+	img.Binaryzation(imageDst,100,255);
+	cvShowImage("afterGray", imageDst);
+	IplImage *sobelOut16 = cvCreateImage(cvGetSize(imageDst),IPL_DEPTH_16S,1);
+	cvSobel(imageDst, sobelOut16,1,0,1);
+	cvConvertScale(sobelOut16, imageDst, 1.0, 0); //转换为8位的
+	cvReleaseImage(&sobelOut16);
+	cvShowImage("afterSobel", imageDst);
+	vector<Lines> *linesSeq = new vector<Lines>;
+	img.houghTransform(imageDst, linesSeq, 60);
+	for(vector<Lines>::iterator iter = linesSeq->begin(); iter != linesSeq->end(); iter++)  
+	{
+		double rho = iter->r;
+		double theta = iter->theta/CV_PI*180;
+		CvPoint pt1, pt2;  
+		double a = cos(theta/180*CV_PI), b = sin(theta/180*CV_PI);  
+		double x0 = a*rho, y0 = b*rho;  
+		pt1.x = cvRound(x0 + 1000*(-b));
+		pt1.y = cvRound(y0 + 1000*(a));  
+		pt2.x = cvRound(x0 - 1000*(-b));  
+		pt2.y = cvRound(y0 - 1000*(a)); 
+		cvLine( image, pt1, pt2, CV_RGB(0, 255, 0), 3, CV_AA, 0);  
+	}
+	cvShowImage("lines", image);
+	cvWaitKey(0); //等待按键
+	cvReleaseImage( &image ); //释放图像
+	return 0;*/
 	CvCapture* capture=cvCreateFileCapture("../13.avi");  
 	IplImage *thetaPic = cvCreateImage(cvSize(180, 500),IPL_DEPTH_8U,1);//画布用于绘制角度分布图
 	IplImage *lengthPic = cvCreateImage(cvSize(1000, 500),IPL_DEPTH_8U,1);//画布用于绘制角度分布图
 	IplImage* frame;    //视频图像
 	IplImage* dst;		//输出图像
 	Mat dstMat;
-	CvSeq *linesSeq;
+	CvSeq *linesSeq;  
 	Image img;
 	//从文件读取频率最大的角度	
 	std::vector<int> maxTheta;
@@ -92,18 +122,22 @@ int main(int argc, char *argv[])
 			maxLength.clear();
 			if(!Judge(leftThetaPre, originThetaLeft, offsetThresholdTheta))
 			{
+				cout<<1<<endl;
 				leftThetaPre = originThetaLeft;
 			}
 			if(!Judge(rightThetaPre, originThetaRight, offsetThresholdTheta))
 			{
+				cout<<2<<endl;
 				rightThetaPre = originThetaRight;
 			}
 			if(!Judge(leftLengthPre, originLengthLeft, offsetThresholdLength))
 			{
+				cout<<3<<endl;
 				leftLengthPre = originLengthLeft;
 			}
 			if(!Judge(rightLengthPre, originLengthRight, offsetThresholdLength))
 			{
+				cout<<4<<endl;
 				rightLengthPre = originLengthRight;
 			}
 			maxTheta.push_back(leftThetaPre);
@@ -154,9 +188,11 @@ int main(int argc, char *argv[])
 		cvSobel(dst, sobelOut16,1,0,1);
 		cvConvertScale(sobelOut16, dst, 1.0, 0); //转换为8位的
 		cvReleaseImage(&sobelOut16);
+		cvShowImage("预处理", dst);
 		//霍夫变换
 		CvMemStorage* lineStorage = cvCreateMemStorage(0);  
-		linesSeq=cvCreateSeq(0,sizeof(CvSeq),sizeof(Lines), lineStorage);
+		//linesSeq=cvCreateSeq(0,sizeof(CvSeq),sizeof(Lines), lineStorage);
+		vector<Lines> *linesSeq = new vector<Lines>;
 		if(maxTheta.size() == 0 || maxLength.size() == 0)
 		{
 		//	linesSeq = cvHoughLines2( dst, lineStorage, CV_HOUGH_STANDARD, 1, CV_PI/180, 60, 0, 0 );  
@@ -164,14 +200,21 @@ int main(int argc, char *argv[])
 		}
 		else
 		{
-		//	linesSeq = cvHoughLines2(dst,lineStorage, CV_HOUGH_STANDARD, 1, CV_PI/180, 1, 0, 0 );  
-			img.houghTransform(dst, linesSeq, 1);
+			//	linesSeq = cvHoughLines2(dst,lineStorage, CV_HOUGH_STANDARD, 1, CV_PI/180, 1, 0, 0 );  
+			img.houghTransform(dst, linesSeq, 2);
 		}
-		for(int i = 0; i < MIN(linesSeq->total,100); i++ )  
+		//for(int i = 0; i < MIN(linesSeq->total,100); i++ )  
+		for(vector<Lines>::iterator iter = linesSeq->begin(); iter != linesSeq->end() && (findFlag[0]==false || findFlag[1] == false); iter++)  
 		{  
-			float* line = (float*)cvGetSeqElem(linesSeq,i);  
-			float rho = line[0];  
-			float theta = line[1]/CV_PI*180;  
+			//float* line = (float*)cvGetSeqElem(linesSeq,i);  
+
+			//	float rho = line[0];  
+			//	float theta = line[1]/CV_PI*180;  
+			//Lines *line = (Lines*)cvGetSeqElem(linesSeq, i);
+			//double rho = line->r;
+			//double theta = line->theta/CV_PI*180;
+			double rho = iter->r;
+			double theta = iter->theta/CV_PI*180.0;
 			//如果是第一次运行，就对频率进行统计。
 			if(maxTheta.size() == 0)
 			{
@@ -191,10 +234,6 @@ int main(int argc, char *argv[])
 			}
 			else
 			{
-				if(findFlag[0]==true && findFlag[1]==true)
-				{
-					break;
-				}
 				//如果不是第一次运行就根据出现频率最大的2个区域进行过滤。
 				for(int i=0; i<(int)maxTheta.size(); i++)
 				{
@@ -229,7 +268,7 @@ int main(int argc, char *argv[])
 							pt2.y += 100*(a);
 							pt2.x += 100*(-b);
 						}
-						cvLine( frame, pt1, pt2, CV_RGB(255,255,255), 3, CV_AA, 0);  
+						cvLine( frame, pt1, pt2, CV_RGB(0, 255, 0), 3, CV_AA, 0);  
 						if(i==0)
 						{
 							leftLinePre = Lines(pt1, pt2);
@@ -243,23 +282,23 @@ int main(int argc, char *argv[])
 				}
 			}
 		} 
+		if(findFlag[0] == false)
+		{
+			cvLine( frame, leftLinePre.start, leftLinePre.end, CV_RGB(0,255,255), 3, CV_AA, 0);  
+		}
+		if(findFlag[1] == false)
+		{
+			cvLine( frame, rightLinePre.start, rightLinePre.end, CV_RGB(0,255,255), 3, CV_AA, 0);  
+		}
 		firstTime = false;
 		findFlag[0] = false;
 		findFlag[1] = false;
-		if(findFlag[0] == false)
-		{
-			cvLine( frame, leftLinePre.start, leftLinePre.end, CV_RGB(255,255,255), 3, CV_AA, 0);  
-		}
-		if(findFlag[0] == false)
-		{
-			cvLine( frame, rightLinePre.start, rightLinePre.end, CV_RGB(255,255,255), 3, CV_AA, 0);  
-		}
-		
 		cvShowImage("识别结果",frame);  
 		cvReleaseImage(&dst);
 		cvReleaseMemStorage(&lineStorage);
 		char c=cvWaitKey(10);  
 		if(c==27) break;  
+		//system("pause");
 	}  
 
 	//绘制角度长度统计信息 找出四条最高的  并写入文件
