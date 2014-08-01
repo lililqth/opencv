@@ -1,53 +1,49 @@
 #include "Image.h"
 using std::vector;
 Lines::Lines(CvPoint a, CvPoint b)
-	:start(a),end(b)
+	:start(a),end(b),theta(0.0), r(0.0)
 {
 }
 Lines::Lines()
 	:start(cvPoint(0, 0)),
-	end(cvPoint(0, 0))
+	end(cvPoint(0, 0)),
+	theta(0.0), r(0.0)
 {
 }
-Vector<Lines> *Image::houghTransform(IplImage *src, int threshold)
+Lines::Lines(double x, double y)
+	:theta(x), r(y), start(cvPoint(0, 0)), end(cvPoint(0, 0))
+{
+}
+void Image::houghTransform(IplImage *src, CvSeq *lineCollector, int threshold)
 {
 	const int maxLength = 1000;
 	int width = src->width;
 	int height = src->height;
-	int statisticRecord[190][maxLength];//统计每一对（ R，theta ）的出现次数
-	memset(statisticRecord,0,sizeof(statisticRecord));
+	int (*statisticRecord)[maxLength * 2] = new int[190][maxLength*2];   
+	memset(statisticRecord, 0, 190 * (maxLength * 2) * sizeof(int));
 	for(int i=0; i<width; i++)
 	{
 		for(int j=0; j<height; j++)
 		{
-			int gray = cvGet2D(src, j, i).val[0];
+			uchar gray=((uchar*)(src->imageData + src->widthStep*j))[i];  
 			if(gray < 60)
 			{
 				continue;
 			}
 			for(int k=0; k<=180; k++)
 			{
-				double theta = (double)((double)k/180.0)*3.1415926;
+				double theta = (double)((double)k/180.0)*CV_PI;
 				double costheta = cos(theta);
 				double sintheta = sin(theta);
-				double length;
-				//如果角度大于90
-				if(k > 90)
+				int length = cvRound((int)((double)i*(costheta)+(double)j*sintheta)) + maxLength;
+				if(length < maxLength * 2 - 1)
 				{
-					length = (int)((double)i*(-costheta)+(double)j*sintheta);                   
-				}
-				else
-				{
-					length = (int)((double)i*costheta+(double)j*sintheta);                   
-				}
-				if(cvRound(length)<maxLength-5)
-				{
-					statisticRecord[k][cvRound(length)]++;
+					statisticRecord[k][length]++;
 				}
 			}
 		}
 	}
-	lineCollector.clear();
+	cvClearSeq(lineCollector);
 	for(int i=0;i<=180; i++)
 	{
 		for(int j=0; j<maxLength; j++)
@@ -57,19 +53,12 @@ Vector<Lines> *Image::houghTransform(IplImage *src, int threshold)
 			&& statisticRecord[i][j] > statisticRecord[i-1][j] && statisticRecord[i][j] > statisticRecord[i+1][j]
 			&& statisticRecord[i][j] > statisticRecord[i-1][j-1] && statisticRecord[i][j] > statisticRecord[i+1][j+1])
 			{
-				double a = cos(i), b = sin(i);  
-				double x0 = a*j, y0 = b*j;  
-				CvPoint pt1, pt2;
-				pt1.x = cvRound(x0 + 1000*(-b));  
-				pt1.y = cvRound(y0 + 1000*(a)) ;  
-				pt2.x = cvRound(x0 - 1000*(-b));  
-				pt2.y = cvRound(y0 - 1000*(a)) ;  
-				Lines l = Lines(pt1, pt2);
-				lineCollector.push_back(l);
+				Lines l = Lines(i/180*CV_PI, j - 1000);
+				cvSeqPush(lineCollector, &l);
 			}
 		}
 	}
-	return &lineCollector;
+	delete []statisticRecord;  	
 }
 
 void Image::HoughDraw(IplImage *dst, Vector<Lines> *lineCollector)
@@ -96,18 +85,10 @@ void Image::GrayStretch(IplImage *src)
 		for(int j=0; j<src->height; j++)
 		{
 			uchar v=((uchar*)(src->imageData + src->widthStep*j))[i];  
-		/*	if(v < x1)
-			{
-				((uchar*)(src->imageData + src->widthStep*j))[i] = k1 * v;             
-			}
-			else */if(v > x1 && v < x2)
+			if(v > x1 && v < x2)
 			{
 				((uchar*)(src->imageData + src->widthStep*j))[i] = k2 * (v - x1) + y1;             
 			}
-			/*else
-			{
-				((uchar*)(src->imageData + src->widthStep*j))[i] = k3 * (v - x2) + y2;             
-			}*/
 		}
 	}
 }

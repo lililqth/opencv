@@ -37,13 +37,12 @@ inline bool Judge(int actual, int standard, int threshold)
 int main(int argc, char *argv[])  
 {  
 	CvCapture* capture=cvCreateFileCapture("../13.avi");  
-	IplImage* frame;    
-	IplImage* dst;
 	IplImage *thetaPic = cvCreateImage(cvSize(180, 500),IPL_DEPTH_8U,1);//画布用于绘制角度分布图
 	IplImage *lengthPic = cvCreateImage(cvSize(1000, 500),IPL_DEPTH_8U,1);//画布用于绘制角度分布图
+	IplImage* frame;    //视频图像
+	IplImage* dst;		//输出图像
 	Mat dstMat;
 	CvSeq *linesSeq;
-	CvMemStorage* lineStorage = cvCreateMemStorage(0);  
 	Image img;
 	//从文件读取频率最大的角度	
 	std::vector<int> maxTheta;
@@ -86,6 +85,7 @@ int main(int argc, char *argv[])
 	Lines leftLinePre = Lines(), rightLinePre = Lines();
 	while(1)  
 	{  
+		
 		if(firstTime == false)
 		{
 			maxTheta.clear();
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
 		dstMat = Mat(dst);
 		adaptiveThreshold(dstMat, dstMat,255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY_INV, 3, 10);
 		*dst = IplImage(dstMat);
-	
+
 		//sobel边缘增强
 		// 由于sobel可能计算出来负值，所以要求输出图像是16位的
 		IplImage *sobelOut16 = cvCreateImage(cvGetSize(dst),IPL_DEPTH_16S,1);
@@ -155,13 +155,17 @@ int main(int argc, char *argv[])
 		cvConvertScale(sobelOut16, dst, 1.0, 0); //转换为8位的
 		cvReleaseImage(&sobelOut16);
 		//霍夫变换
+		CvMemStorage* lineStorage = cvCreateMemStorage(0);  
+		linesSeq=cvCreateSeq(0,sizeof(CvSeq),sizeof(Lines), lineStorage);
 		if(maxTheta.size() == 0 || maxLength.size() == 0)
 		{
-			linesSeq = cvHoughLines2( dst, lineStorage, CV_HOUGH_STANDARD, 1, CV_PI/180, 60, 0, 0 );  
+		//	linesSeq = cvHoughLines2( dst, lineStorage, CV_HOUGH_STANDARD, 1, CV_PI/180, 60, 0, 0 );  
+			img.houghTransform(dst, linesSeq, 60);
 		}
 		else
 		{
-			linesSeq = cvHoughLines2(dst, lineStorage, CV_HOUGH_STANDARD, 1, CV_PI/180, 1, 0, 0 );  
+		//	linesSeq = cvHoughLines2(dst,lineStorage, CV_HOUGH_STANDARD, 1, CV_PI/180, 1, 0, 0 );  
+			img.houghTransform(dst, linesSeq, 1);
 		}
 		for(int i = 0; i < MIN(linesSeq->total,100); i++ )  
 		{  
@@ -191,8 +195,7 @@ int main(int argc, char *argv[])
 				{
 					break;
 				}
-				
-				//如果不是第一次运行就根据出现频率最大的4个区域进行过滤。
+				//如果不是第一次运行就根据出现频率最大的2个区域进行过滤。
 				for(int i=0; i<(int)maxTheta.size(); i++)
 				{
 					if(findFlag[i]==false && Judge(theta, maxTheta[i], thresholdTheta) && Judge(rho, maxLength[i]-500, thresholdLength))
@@ -212,6 +215,7 @@ int main(int argc, char *argv[])
 						double a = cos(theta/180*CV_PI), b = sin(theta/180*CV_PI);  
 						double x0 = a*rho, y0 = b*rho;  
 						pt1.x = cvRound(x0 + 1000*(-b));
+
 						pt1.y = cvRound(y0 + 1000*(a)) + size.height;  
 						while(pt1.y < size.height)
 						{
@@ -253,6 +257,7 @@ int main(int argc, char *argv[])
 		
 		cvShowImage("识别结果",frame);  
 		cvReleaseImage(&dst);
+		cvReleaseMemStorage(&lineStorage);
 		char c=cvWaitKey(10);  
 		if(c==27) break;  
 	}  
@@ -295,7 +300,7 @@ int main(int argc, char *argv[])
 	cvReleaseCapture(&capture);  
 	cvReleaseImage(&thetaPic);
 	cvReleaseImage(&frame);
-	cvReleaseImage(&dst);
+	cvReleaseImage(&lengthPic);
 	cvDestroyAllWindows();
 	return 0;  
 }  
