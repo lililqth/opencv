@@ -4,8 +4,8 @@
 using namespace cv; 
 using namespace std;
 
-const int thresholdTheta = 2;
-const int thresholdLength = 2;
+const int thresholdTheta = 10;
+const int thresholdLength = 10;
 const int offsetThresholdTheta = 15;
 const int offsetThresholdLength = 15;
 vector<int> thetaStatus(180);
@@ -122,22 +122,18 @@ int main(int argc, char *argv[])
 			maxLength.clear();
 			if(!Judge(leftThetaPre, originThetaLeft, offsetThresholdTheta))
 			{
-				cout<<1<<endl;
 				leftThetaPre = originThetaLeft;
 			}
 			if(!Judge(rightThetaPre, originThetaRight, offsetThresholdTheta))
 			{
-				cout<<2<<endl;
 				rightThetaPre = originThetaRight;
 			}
 			if(!Judge(leftLengthPre, originLengthLeft, offsetThresholdLength))
 			{
-				cout<<3<<endl;
 				leftLengthPre = originLengthLeft;
 			}
 			if(!Judge(rightLengthPre, originLengthRight, offsetThresholdLength))
 			{
-				cout<<4<<endl;
 				rightLengthPre = originLengthRight;
 			}
 			maxTheta.push_back(leftThetaPre);
@@ -195,7 +191,7 @@ int main(int argc, char *argv[])
 		vector<Lines> *linesSeq = new vector<Lines>;
 		if(maxTheta.size() == 0 || maxLength.size() == 0)
 		{
-		//	linesSeq = cvHoughLines2( dst, lineStorage, CV_HOUGH_STANDARD, 1, CV_PI/180, 60, 0, 0 );  
+			//linesSeq = cvHoughLines2( dst, lineStorage, CV_HOUGH_STANDARD, 1, CV_PI/180, 60, 0, 0 );  
 			img.houghTransform(dst, linesSeq, 60);
 		}
 		else
@@ -296,6 +292,7 @@ int main(int argc, char *argv[])
 		cvShowImage("识别结果",frame);  
 		cvReleaseImage(&dst);
 		cvReleaseMemStorage(&lineStorage);
+		dstMat.release();
 		char c=cvWaitKey(10);  
 		if(c==27) break;  
 		//system("pause");

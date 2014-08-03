@@ -17,7 +17,7 @@ public:
 class Image
 {
 public:
-	void houghTransform(IplImage*, CvSeq*, int);
+	void houghlinesMe(const CvMat* img, float rho, float theta,int threshold, CvSeq *lines, int linesMax);
 	void houghTransform(IplImage*, vector<Lines>*, int);
 	void icvHoughLinesStandard( const CvMat* img, float rho, float theta, int threshold, CvSeq *lines, int linesMax);
 	void HoughDraw(IplImage *dst, Vector<Lines> *lineCollector);
