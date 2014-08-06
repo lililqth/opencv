@@ -24,5 +24,6 @@ public:
 	void GrayStretch(IplImage *src);
 	void Binaryzation(IplImage*, int, int);
 	void Graying(IplImage *, IplImage *);
+	void medianFilter(IplImage *);
 };
 #endif

@@ -36,37 +36,7 @@ inline bool Judge(int actual, int standard, int threshold)
 }
 int main(int argc, char *argv[])  
 {  
-	/*Image img;
-	IplImage* image = cvLoadImage("../1.jpg");
-	IplImage* imageDst = cvCreateImage(cvGetSize(image),IPL_DEPTH_8U,1) ;    
-	img.Graying(image, imageDst);
-	img.Binaryzation(imageDst,100,255);
-	cvShowImage("afterGray", imageDst);
-	IplImage *sobelOut16 = cvCreateImage(cvGetSize(imageDst),IPL_DEPTH_16S,1);
-	cvSobel(imageDst, sobelOut16,1,0,1);
-	cvConvertScale(sobelOut16, imageDst, 1.0, 0); //转换为8位的
-	cvReleaseImage(&sobelOut16);
-	cvShowImage("afterSobel", imageDst);
-	vector<Lines> *linesSeq = new vector<Lines>;
-	img.houghTransform(imageDst, linesSeq, 60);
-	for(vector<Lines>::iterator iter = linesSeq->begin(); iter != linesSeq->end(); iter++)  
-	{
-		double rho = iter->r;
-		double theta = iter->theta/CV_PI*180;
-		CvPoint pt1, pt2;  
-		double a = cos(theta/180*CV_PI), b = sin(theta/180*CV_PI);  
-		double x0 = a*rho, y0 = b*rho;  
-		pt1.x = cvRound(x0 + 1000*(-b));
-		pt1.y = cvRound(y0 + 1000*(a));  
-		pt2.x = cvRound(x0 - 1000*(-b));  
-		pt2.y = cvRound(y0 - 1000*(a)); 
-		cvLine( image, pt1, pt2, CV_RGB(0, 255, 0), 3, CV_AA, 0);  
-	}
-	cvShowImage("lines", image);
-	cvWaitKey(0); //等待按键
-	cvReleaseImage( &image ); //释放图像
-	return 0;*/
-	CvCapture* capture=cvCreateFileCapture("../13.avi");  
+	CvCapture* capture=cvCreateFileCapture("../14.avi");  
 	IplImage *thetaPic = cvCreateImage(cvSize(180, 500),IPL_DEPTH_8U,1);//画布用于绘制角度分布图
 	IplImage *lengthPic = cvCreateImage(cvSize(1000, 500),IPL_DEPTH_8U,1);//画布用于绘制角度分布图
 	IplImage* frame;    //视频图像
@@ -151,7 +121,6 @@ int main(int argc, char *argv[])
 		//灰度化
 		//cvCvtColor(frame, dst, CV_RGB2GRAY);
 		img.Graying(frame, dst);
-		cvShowImage("gray", dst);
 
 		//剪裁图像的下半部分
 		CvSize size = cvSize(cvGetSize(dst).width, cvGetSize(dst).height/2);
@@ -165,7 +134,11 @@ int main(int argc, char *argv[])
 		cvReleaseImage(&halfDst);
 
 		//中值滤波
-		cvSmooth(dst, dst, CV_MEDIAN, 3, 3, 0, 0);    //3x3
+		//cvSmooth(dst, dst, CV_MEDIAN, 3, 3, 0, 0);    //3x3
+		img.medianFilter(dst);
+		cvShowImage("中值滤波", dst);
+
+
 		//高斯滤波
 		cvSmooth(dst, dst, CV_GAUSSIAN, 3, 3, 0, 0);//3x3
 		
@@ -264,7 +237,7 @@ int main(int argc, char *argv[])
 							pt2.y += 100*(a);
 							pt2.x += 100*(-b);
 						}
-						cvLine( frame, pt1, pt2, CV_RGB(0, 255, 0), 3, CV_AA, 0);  
+						cvLine( frame, pt1, pt2, CV_RGB(255, 255, 255), 3, CV_AA, 0);  
 						if(i==0)
 						{
 							leftLinePre = Lines(pt1, pt2);
@@ -280,11 +253,11 @@ int main(int argc, char *argv[])
 		} 
 		if(findFlag[0] == false)
 		{
-			cvLine( frame, leftLinePre.start, leftLinePre.end, CV_RGB(0,255,255), 3, CV_AA, 0);  
+			cvLine( frame, leftLinePre.start, leftLinePre.end, CV_RGB(255, 255, 255), 3, CV_AA, 0);  
 		}
 		if(findFlag[1] == false)
 		{
-			cvLine( frame, rightLinePre.start, rightLinePre.end, CV_RGB(0,255,255), 3, CV_AA, 0);  
+			cvLine( frame, rightLinePre.start, rightLinePre.end, CV_RGB(255, 255, 255), 3, CV_AA, 0);  
 		}
 		firstTime = false;
 		findFlag[0] = false;
