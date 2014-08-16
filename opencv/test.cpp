@@ -39,7 +39,6 @@ int main(int argc, char *argv[])
 	IplImage *lengthPic = cvCreateImage(cvSize(1000, 500),IPL_DEPTH_8U,1);//画布用于绘制角度分布图
 	IplImage* frame;    //视频图像
 	IplImage* dst;		//输出图像
-	CvSeq *linesSeq;  
 	Image img;
 	//从文件读取频率最大的角度	
 	std::vector<int> maxTheta;
@@ -182,18 +181,18 @@ int main(int argc, char *argv[])
 				//如果不是第一次运行就根据出现频率最大的2个区域进行过滤。
 				for(int i=0; i<(int)maxTheta.size(); i++)
 				{
-					if(findFlag[i]==false && Judge(theta, maxTheta[i], thresholdTheta) && Judge(rho, maxLength[i]-500, thresholdLength))
+					if(findFlag[i]==false && Judge((int)theta, maxTheta[i], thresholdTheta) && Judge((int)rho, maxLength[i]-500, thresholdLength))
 					{		
 						findFlag[i] = true;
 						if(i == 0)
 						{
-							leftThetaPre = theta;
-							leftLengthPre = rho + 500; 	
+							leftThetaPre = (int)theta;
+							leftLengthPre = (int)rho + 500;
 						}
 						else if(i == 1)
 						{
-							rightThetaPre = theta;
-							rightLengthPre = rho + 500;
+							rightThetaPre = (int)theta;
+							rightLengthPre = (int)rho + 500;
 						}
 						CvPoint pt1, pt2;  
 						double a = cos(theta/180*CV_PI), b = sin(theta/180*CV_PI);  
@@ -203,15 +202,15 @@ int main(int argc, char *argv[])
 						pt1.y = cvRound(y0 + 1000*(a)) + size.height;  
 						while(pt1.y < size.height)
 						{
-							pt1.x -= 100*(-b);
-							pt1.y -= 100*(a);
+							pt1.x -= 100*(-(int)b);
+							pt1.y -= 100*((int)a);
 						}
 						pt2.x = cvRound(x0 - 1000*(-b));  
 						pt2.y = cvRound(y0 - 1000*(a)) + size.height;  
 						while(pt2.y < size.height)
 						{
-							pt2.y += 100*(a);
-							pt2.x += 100*(-b);
+							pt2.y += 100*((int)a);
+							pt2.x += 100*(-(int)b);
 						}
 						cvLine( frame, pt1, pt2, CV_RGB(255, 255, 255), 3, CV_AA, 0);  
 						if(i==0)
@@ -255,7 +254,7 @@ int main(int argc, char *argv[])
 		flag = true;
 		sort(statusCopy.begin(), statusCopy.end(),cmp);
 		fout.open("recordTheta.txt", ios::out);
-		for(int i=0; i<thetaStatus.size(); i++)
+		for(size_t i=0; i<thetaStatus.size(); i++)
 		{
 			if(thetaStatus[i] == statusCopy[0] || thetaStatus[i] == statusCopy[1] 
 			|| thetaStatus[i] == statusCopy[2] || thetaStatus[i] == statusCopy[3])
@@ -271,7 +270,7 @@ int main(int argc, char *argv[])
 		sort(statusCopy.begin(), statusCopy.end(),cmp);
 		ofstream fout;
 		fout.open("recordLength.txt", ios::out);
-		for(int i=0; i<lengthStatus.size(); i++)
+		for(size_t i=0; i<lengthStatus.size(); i++)
 		{
 			if(lengthStatus[i] == statusCopy[0] || lengthStatus[i] == statusCopy[1] 
 			|| lengthStatus[i] == statusCopy[2] || lengthStatus[i] == statusCopy[3])
