@@ -1,9 +1,9 @@
 #include "image.h"
 
-const int thresholdTheta = 10;
-const int thresholdLength = 10;
-const int offsetThresholdTheta = 15;
-const int offsetThresholdLength = 15;
+const int thresholdTheta = 10;				/*两帧之间的角度差限制*/
+const int thresholdLength = 5;				/*两帧之间的R差限制*/
+const int offsetThresholdTheta = 15;		/*与初始角度值偏差的限制*/
+const int offsetThresholdLength = 15;		/*与初始R偏差的限制*/
 vector<int> thetaStatus(180);
 vector<int> lengthStatus(1000);
 void ShowStatus(IplImage *canvas, vector<int> *status)
@@ -16,11 +16,11 @@ void ShowStatus(IplImage *canvas, vector<int> *status)
 		i++;
 	}
 }
+
 bool cmp(int a, int b)
 {
 	return a>b;
 }
-
 
 inline bool Judge(int actual, int standard, int threshold)
 {
@@ -30,10 +30,11 @@ inline bool Judge(int actual, int standard, int threshold)
 	}
 	return false;
 }
+
 int main(int argc, char *argv[])  
 {  
 	CvCapture* capture=cvCreateFileCapture("../13.avi");  
-    VideoWriter writer("VideoTest.avi", CV_FOURCC('M', 'J', 'P', 'G'), 25.0, Size(640, 480));  
+	VideoWriter writer("VideoTest.avi", CV_FOURCC('M', 'J', 'P', 'G'), 25.0, Size(640, 480));  
 	IplImage *thetaPic = cvCreateImage(cvSize(180, 500),IPL_DEPTH_8U,1);//画布用于绘制角度分布图
 	IplImage *lengthPic = cvCreateImage(cvSize(1000, 500),IPL_DEPTH_8U,1);//画布用于绘制角度分布图
 	IplImage* frame;    //视频图像
@@ -82,7 +83,7 @@ int main(int argc, char *argv[])
 	Lines leftLinePre = Lines(), rightLinePre = Lines();
 	while(1)  
 	{  
-		
+
 		if(firstTime == false)
 		{
 			maxTheta.clear();
@@ -114,16 +115,15 @@ int main(int argc, char *argv[])
 			break;  
 		}
 		dst = cvCreateImage(cvGetSize(frame),IPL_DEPTH_8U,1) ;    
-		
+
 		//灰度化
-		//cvCvtColor(frame, dst, CV_RGB2GRAY);
 		img.Graying(frame, dst);
 
 		//剪裁图像的下半部分
 		CvSize size = cvSize(cvGetSize(dst).width, cvGetSize(dst).height/2);
 		cvSetImageROI(dst, cvRect(0 ,size.height, size.width, size.height));
-		IplImage* halfDst = cvCreateImage(size,dst->depth,dst->nChannels);//创建目标图像
-		cvCopy(dst, halfDst);//halfDst中存放的是图像的下半部分
+		IplImage* halfDst = cvCreateImage(size,dst->depth,dst->nChannels);	//创建目标图像
+		cvCopy(dst, halfDst);												//halfDst中存放的是图像的下半部分
 		cvResetImageROI(dst);
 		cvReleaseImage(&dst);
 		dst = cvCreateImage(cvGetSize(halfDst),IPL_DEPTH_8U,1) ;    
@@ -136,51 +136,32 @@ int main(int argc, char *argv[])
 		//二值化去除无用的信息，之后自适应二值化
 		img.Binaryzation(dst, 60, 150);
 
-		dstMat = Mat(dst);
+		img.blur(dst, dst);
+
+	/*	dstMat = Mat(dst);
 		adaptiveThreshold(dstMat, dstMat,255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY_INV, 3, 10);
-		*dst = IplImage(dstMat);
+		*dst = IplImage(dstMat);*/
 
 		//sobel边缘增强
-		// 由于sobel可能计算出来负值，所以要求输出图像是16位的
-		//IplImage *sobelOut16 = cvCreateImage(cvGetSize(dst),IPL_DEPTH_16S,1);
 		IplImage *sobelOut8 = cvCreateImage(cvGetSize(dst),IPL_DEPTH_8U,1);
-		//cvShowImage("sobel前", sobelOut16);
 		img.sobel(dst, sobelOut8);
 		cvCopy(sobelOut8, dst);
 		cvReleaseImage(&dst);
 		dst = cvCloneImage(sobelOut8);
 		cvShowImage("sobel", dst);
-	//	cvReleaseImage(&sobelOut8);
-	/*	cvSobel(dst, sobelOut16, 1, 0, 1);
-		cvConvertScale(sobelOut16, dst, 1.0, 0); //转换为8位的
-		cvReleaseImage(&sobelOut16);*/
 
-
-		
-		
 		//霍夫变换
-		CvMemStorage* lineStorage = cvCreateMemStorage(0);  
-		//linesSeq=cvCreateSeq(0,sizeof(CvSeq),sizeof(Lines), lineStorage);
 		vector<Lines> *linesSeq = new vector<Lines>;
 		if(maxTheta.size() == 0 || maxLength.size() == 0)
 		{
-			//linesSeq = cvHoughLines2( dst, lineStorage, CV_HOUGH_STANDARD, 1, CV_PI/180, 60, 0, 0 );  
 			img.houghTransform(dst, linesSeq, 60);
 		}
 		else
 		{
-			//	linesSeq = cvHoughLines2(dst,lineStorage, CV_HOUGH_STANDARD, 1, CV_PI/180, 1, 0, 0 );  
-			img.houghTransform(dst, linesSeq, 2);
+			img.houghTransform(dst, linesSeq, 10);
 		}
-		//for(int i = 0; i < MIN(linesSeq->total,100); i++ )  
 		for(vector<Lines>::iterator iter = linesSeq->begin(); iter != linesSeq->end() && (findFlag[0]==false || findFlag[1] == false); iter++)  
 		{  
-			//float* line = (float*)cvGetSeqElem(linesSeq,i);  
-			//	float rho = line[0];  
-			//	float theta = line[1]/CV_PI*180;  
-			//Lines *line = (Lines*)cvGetSeqElem(linesSeq, i);
-			//double rho = line->r;
-			//double theta = line->theta/CV_PI*180;
 			double rho = iter->r;
 			double theta = iter->theta/CV_PI*180.0;
 			//如果是第一次运行，就对频率进行统计。
@@ -202,7 +183,6 @@ int main(int argc, char *argv[])
 			}
 			else
 			{
-				
 				//如果不是第一次运行就根据出现频率最大的2个区域进行过滤。
 				for(int i=0; i<(int)maxTheta.size(); i++)
 				{
@@ -264,7 +244,6 @@ int main(int argc, char *argv[])
 		findFlag[1] = false;
 		cvShowImage("识别结果",frame);  
 		cvReleaseImage(&dst);
-		cvReleaseMemStorage(&lineStorage);
 		dstMat.release();
 		writer << frame;
 		char c=cvWaitKey(10);

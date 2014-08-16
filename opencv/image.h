@@ -6,6 +6,7 @@
 #include <algorithm>
 using namespace cv;
 using namespace std;
+
 class Lines
 {
 public: 
@@ -17,17 +18,16 @@ public:
 	Lines(double theta, double r);
 	Lines();
 };
+
 class Image
 {
 public:
-	void houghlinesMe(const CvMat* img, float rho, float theta,int threshold, CvSeq *lines, int linesMax);
-	void houghTransform(IplImage*, vector<Lines>*, int);
-	void icvHoughLinesStandard( const CvMat* img, float rho, float theta, int threshold, CvSeq *lines, int linesMax);
-	void HoughDraw(IplImage *dst, Vector<Lines> *lineCollector);
-	void GrayStretch(IplImage *src);
-	void Binaryzation(IplImage*, int, int);
-	void Graying(IplImage *, IplImage *);
-	void medianFilter(IplImage *);
-	void sobel(IplImage *, IplImage *);
+	void houghTransform(IplImage*, vector<Lines>*, int);	/*霍夫变换*/
+	void GrayStretch(IplImage *src);						/*灰度拉伸*/
+	void Binaryzation(IplImage*, int, int);					/*二值化*/
+	void Graying(IplImage *, IplImage *);					/*灰度化*/
+	void medianFilter(IplImage *);							/*中值滤波*/
+	void sobel(IplImage *, IplImage *);						/*sobel边缘检测*/
+	void blur(IplImage *, IplImage *);						/*BoxFilter*/
 };
 #endif
