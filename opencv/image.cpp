@@ -29,6 +29,10 @@ bool cmp(LinePolar a, LinePolar b)
 	return a.count > b.count;
 }
 
+/*
+霍夫变换
+保存cos、sin的值以免重复计算
+*/
 void Image::houghTransform(IplImage *src, vector<Lines> *lineCollector, int threshold)
 {
 	double cos[180] = {1, 0.999848, 0.999391, 0.99863, 0.997564, 0.996195, 0.994522, 0.992546, 0.990268, 0.987688, 0.984808, 0.981627, 0.978148, 0.97437,
@@ -149,7 +153,10 @@ void Image::GrayStretch(IplImage *src)
 		}
 	}
 }
-
+/*
+灰度化
+使用位运算可以加快速度
+*/
 void Image::Graying(IplImage *src, IplImage *dst)
 {
 	for (int i=0; i<src->width; i++)
@@ -163,6 +170,9 @@ void Image::Graying(IplImage *src, IplImage *dst)
 		}
 	}
 }
+/*
+二值化
+*/
 void Image::Binaryzation(IplImage *src, int low, int high)
 {
 	for(int i=0; i<src->width; i++)
@@ -182,7 +192,7 @@ void Image::Binaryzation(IplImage *src, int low, int high)
 }
 
 /*
-求第K小算法
+求第K小算法（快排的变形）
 用于在中值滤波中找到位于中间的数
 */
 int find(int record[9], int start, int end)
@@ -216,7 +226,9 @@ int find(int record[9], int start, int end)
 		return find(record, low+1, end);
 	}
 }
-
+/*
+中值滤波
+*/
 void Image::medianFilter(IplImage *src)
 {
 	int height = src->height;
@@ -243,33 +255,41 @@ void Image::medianFilter(IplImage *src)
 	}
 }
 
+/*
+sobel算子边缘检测
+*/
 void Image::sobel(IplImage *src, IplImage *dst)
 {
 	int temp[3] = {-3, 0, 3};
 	int height = src->height;
 	int width = src->widthStep;
-	for(int i = 0; i < width; i++)
+	for (int i = 0; i < height; i++)
 	{
-		for(int j = 0; j < height; j++)
+		uchar *sData = (uchar*)(src->imageData + src->widthStep*i);
+		uchar *dData = (uchar*)(dst->imageData + dst->widthStep*i);
+		for(int j = 0; j < width; j++)
 		{
-			if(i - 1 >= 0 && i + 1 <width) 
+			if(j - 1 >= 0 && j + 1 <width) 
 			{
-				int a = ((uchar*)(src->imageData + src->widthStep*j))[i-1] * temp[0];
-				int b = ((uchar*)(src->imageData + src->widthStep*j))[i] * temp[1];
-				int c = ((uchar*)(src->imageData + src->widthStep*j))[i+1] * temp[2];
+				int a = sData[j-1] * temp[0];
+				int b = sData[j] * temp[1];
+				int c = sData[j+1] * temp[2];
 				if(a+b+c>250)
 				{
-					((uchar*)(dst->imageData +dst->widthStep*j))[i] = 255;
+					dData[j] = 255;
 				}
 				else
 				{
-					((uchar*)(dst->imageData +dst->widthStep*j))[i] = 0;
+					dData[j] = 0;
 				}
 			}
 		}
 	}
 }
 
+/*
+中值滤波
+*/
 void Image::blur(IplImage *src, IplImage *dst)
 {
 	IplImage * srcCpy = cvCloneImage(src);
@@ -281,13 +301,46 @@ void Image::blur(IplImage *src, IplImage *dst)
 		{
 			if (i-1 >= 0 && i+1 <width && j-1 >= 0 && j+1 < height) 
 			{
-				int x = ((uchar*)(srcCpy->imageData + srcCpy->widthStep*j-1))[i-1]+((uchar*)(srcCpy->imageData + srcCpy->widthStep*(j-1)))[i]
+				int x = ((uchar*)(srcCpy->imageData + srcCpy->widthStep*(j-1)))[i-1]+((uchar*)(srcCpy->imageData + srcCpy->widthStep*(j-1)))[i]
 				+((uchar*)(srcCpy->imageData + srcCpy->widthStep*(j+1)))[i]+((uchar*)(srcCpy->imageData + srcCpy->widthStep*j))[i-1]
 				+((uchar*)(srcCpy->imageData + srcCpy->widthStep*j))[i]+((uchar*)(srcCpy->imageData + srcCpy->widthStep*j))[i+1]
 				+((uchar*)(srcCpy->imageData + srcCpy->widthStep*(j+1)))[i-1]+((uchar*)(srcCpy->imageData + srcCpy->widthStep*(j+1)))[i]
 				+((uchar*)(srcCpy->imageData + srcCpy->widthStep*(j+1)))[i+1];
 				x = x / 9;
 				((uchar*)(dst->imageData + dst->widthStep*j))[i] = x;
+			}
+		}
+	}
+	cvReleaseImage(&srcCpy);
+}
+
+/*
+自适应二值化
+*/
+void Image::adaptiveThreshold(IplImage *src, IplImage *dst)
+{
+	IplImage * srcCpy = cvCloneImage(src);
+	int height = src->height;
+	int width = src->widthStep;
+	uchar tab[768];
+	for (int i=0; i<768; i++)
+	{
+		tab[i] = (uchar)(i - 255 <= -10 ? 255: 0);
+	}
+	for (int i = 0; i < width; i++)
+	{
+		for (int j = 0; j < height; j++)
+		{
+			if (i-1 >= 0 && i+1 <width && j-1 >= 0 && j+1 < height) 
+			{
+				int x = ((uchar*)(srcCpy->imageData + srcCpy->widthStep*(j-1)))[i-1]+((uchar*)(srcCpy->imageData + srcCpy->widthStep*(j-1)))[i]
+				+((uchar*)(srcCpy->imageData + srcCpy->widthStep*(j+1)))[i]+((uchar*)(srcCpy->imageData + srcCpy->widthStep*j))[i-1]
+				+((uchar*)(srcCpy->imageData + srcCpy->widthStep*j))[i]+((uchar*)(srcCpy->imageData + srcCpy->widthStep*j))[i+1]
+				+((uchar*)(srcCpy->imageData + srcCpy->widthStep*(j+1)))[i-1]+((uchar*)(srcCpy->imageData + srcCpy->widthStep*(j+1)))[i]
+				+((uchar*)(srcCpy->imageData + srcCpy->widthStep*(j+1)))[i+1];
+				x = x / 9;
+				int nowGray = ((uchar*)(dst->imageData + dst->widthStep*j))[i];
+				((uchar*)(dst->imageData + dst->widthStep*j))[i] = tab[nowGray - x + 255];
 			}
 		}
 	}

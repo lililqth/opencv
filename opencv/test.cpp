@@ -1,7 +1,7 @@
 #include "image.h"
 
 const int thresholdTheta = 10;				/*两帧之间的角度差限制*/
-const int thresholdLength = 5;				/*两帧之间的R差限制*/
+const int thresholdLength = 10;				/*两帧之间的R差限制*/
 const int offsetThresholdTheta = 15;		/*与初始角度值偏差的限制*/
 const int offsetThresholdLength = 15;		/*与初始R偏差的限制*/
 vector<int> thetaStatus(180);
@@ -34,12 +34,11 @@ inline bool Judge(int actual, int standard, int threshold)
 int main(int argc, char *argv[])  
 {  
 	CvCapture* capture=cvCreateFileCapture("../13.avi");  
-	VideoWriter writer("VideoTest.avi", CV_FOURCC('M', 'J', 'P', 'G'), 25.0, Size(640, 480));  
+//	VideoWriter writer("VideoTest.avi", CV_FOURCC('M', 'J', 'P', 'G'), 25.0, Size(640, 480));  
 	IplImage *thetaPic = cvCreateImage(cvSize(180, 500),IPL_DEPTH_8U,1);//画布用于绘制角度分布图
 	IplImage *lengthPic = cvCreateImage(cvSize(1000, 500),IPL_DEPTH_8U,1);//画布用于绘制角度分布图
 	IplImage* frame;    //视频图像
 	IplImage* dst;		//输出图像
-	Mat dstMat;
 	CvSeq *linesSeq;  
 	Image img;
 	//从文件读取频率最大的角度	
@@ -133,14 +132,11 @@ int main(int argc, char *argv[])
 		//中值滤波因为sobel算子结合了高斯平滑，不需要再进行高斯平滑
 		img.medianFilter(dst);
 
-		//二值化去除无用的信息，之后自适应二值化
+		//二值化去除无用的信息
 		img.Binaryzation(dst, 60, 150);
 
-		img.blur(dst, dst);
-
-	/*	dstMat = Mat(dst);
-		adaptiveThreshold(dstMat, dstMat,255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY_INV, 3, 10);
-		*dst = IplImage(dstMat);*/
+		//之后自适应二值化提取边界
+		img.adaptiveThreshold(dst, dst);
 
 		//sobel边缘增强
 		IplImage *sobelOut8 = cvCreateImage(cvGetSize(dst),IPL_DEPTH_8U,1);
@@ -148,7 +144,7 @@ int main(int argc, char *argv[])
 		cvCopy(sobelOut8, dst);
 		cvReleaseImage(&dst);
 		dst = cvCloneImage(sobelOut8);
-		cvShowImage("sobel", dst);
+		cvReleaseImage(&sobelOut8);
 
 		//霍夫变换
 		vector<Lines> *linesSeq = new vector<Lines>;
@@ -243,12 +239,11 @@ int main(int argc, char *argv[])
 		findFlag[0] = false;
 		findFlag[1] = false;
 		cvShowImage("识别结果",frame);  
+
 		cvReleaseImage(&dst);
-		dstMat.release();
-		writer << frame;
+		//writer << frame;
 		char c=cvWaitKey(10);
 		if(c==27) break;  
-		//system("pause");
 	}  
 
 	//绘制角度长度统计信息 找出四条最高的  并写入文件
