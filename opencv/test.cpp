@@ -1,8 +1,4 @@
 #include "image.h"
-#include <fstream>
-#include <algorithm>
-using namespace cv; 
-using namespace std;
 
 const int thresholdTheta = 10;
 const int thresholdLength = 10;
@@ -36,7 +32,8 @@ inline bool Judge(int actual, int standard, int threshold)
 }
 int main(int argc, char *argv[])  
 {  
-	CvCapture* capture=cvCreateFileCapture("../14.avi");  
+	CvCapture* capture=cvCreateFileCapture("../13.avi");  
+    VideoWriter writer("VideoTest.avi", CV_FOURCC('M', 'J', 'P', 'G'), 25.0, Size(640, 480));  
 	IplImage *thetaPic = cvCreateImage(cvSize(180, 500),IPL_DEPTH_8U,1);//画布用于绘制角度分布图
 	IplImage *lengthPic = cvCreateImage(cvSize(1000, 500),IPL_DEPTH_8U,1);//画布用于绘制角度分布图
 	IplImage* frame;    //视频图像
@@ -133,17 +130,9 @@ int main(int argc, char *argv[])
 		cvCopy(halfDst, dst);
 		cvReleaseImage(&halfDst);
 
-		//中值滤波
-		//cvSmooth(dst, dst, CV_MEDIAN, 3, 3, 0, 0);    //3x3
+		//中值滤波因为sobel算子结合了高斯平滑，不需要再进行高斯平滑
 		img.medianFilter(dst);
-		cvShowImage("中值滤波", dst);
 
-
-		//高斯滤波
-		cvSmooth(dst, dst, CV_GAUSSIAN, 3, 3, 0, 0);//3x3
-		
-
-	
 		//二值化去除无用的信息，之后自适应二值化
 		img.Binaryzation(dst, 60, 150);
 
@@ -153,11 +142,22 @@ int main(int argc, char *argv[])
 
 		//sobel边缘增强
 		// 由于sobel可能计算出来负值，所以要求输出图像是16位的
-		IplImage *sobelOut16 = cvCreateImage(cvGetSize(dst),IPL_DEPTH_16S,1);
-		cvSobel(dst, sobelOut16,1,0,1);
+		//IplImage *sobelOut16 = cvCreateImage(cvGetSize(dst),IPL_DEPTH_16S,1);
+		IplImage *sobelOut8 = cvCreateImage(cvGetSize(dst),IPL_DEPTH_8U,1);
+		//cvShowImage("sobel前", sobelOut16);
+		img.sobel(dst, sobelOut8);
+		cvCopy(sobelOut8, dst);
+		cvReleaseImage(&dst);
+		dst = cvCloneImage(sobelOut8);
+		cvShowImage("sobel", dst);
+	//	cvReleaseImage(&sobelOut8);
+	/*	cvSobel(dst, sobelOut16, 1, 0, 1);
 		cvConvertScale(sobelOut16, dst, 1.0, 0); //转换为8位的
-		cvReleaseImage(&sobelOut16);
-		cvShowImage("预处理", dst);
+		cvReleaseImage(&sobelOut16);*/
+
+
+		
+		
 		//霍夫变换
 		CvMemStorage* lineStorage = cvCreateMemStorage(0);  
 		//linesSeq=cvCreateSeq(0,sizeof(CvSeq),sizeof(Lines), lineStorage);
@@ -176,7 +176,6 @@ int main(int argc, char *argv[])
 		for(vector<Lines>::iterator iter = linesSeq->begin(); iter != linesSeq->end() && (findFlag[0]==false || findFlag[1] == false); iter++)  
 		{  
 			//float* line = (float*)cvGetSeqElem(linesSeq,i);  
-
 			//	float rho = line[0];  
 			//	float theta = line[1]/CV_PI*180;  
 			//Lines *line = (Lines*)cvGetSeqElem(linesSeq, i);
@@ -203,6 +202,7 @@ int main(int argc, char *argv[])
 			}
 			else
 			{
+				
 				//如果不是第一次运行就根据出现频率最大的2个区域进行过滤。
 				for(int i=0; i<(int)maxTheta.size(); i++)
 				{
@@ -266,7 +266,8 @@ int main(int argc, char *argv[])
 		cvReleaseImage(&dst);
 		cvReleaseMemStorage(&lineStorage);
 		dstMat.release();
-		char c=cvWaitKey(10);  
+		writer << frame;
+		char c=cvWaitKey(10);
 		if(c==27) break;  
 		//system("pause");
 	}  

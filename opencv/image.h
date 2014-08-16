@@ -2,7 +2,10 @@
 #define IMAGE_H
 #include <opencv2/opencv.hpp>  
 #include <vector>
+#include <fstream>
+#include <algorithm>
 using namespace cv;
+using namespace std;
 class Lines
 {
 public: 
@@ -25,5 +28,6 @@ public:
 	void Binaryzation(IplImage*, int, int);
 	void Graying(IplImage *, IplImage *);
 	void medianFilter(IplImage *);
+	void sobel(IplImage *, IplImage *);
 };
 #endif

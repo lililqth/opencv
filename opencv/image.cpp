@@ -61,7 +61,7 @@ void Image::houghTransform(IplImage *src, vector<Lines> *lineCollector, int thre
 		};
 		const int limit = 100;
 		const int maxLength = 1000;
-		int width = src->width;
+		int width = src->widthStep;
 		int height = src->height;
 		int (*statisticRecord)[maxLength * 2] = new int[190][maxLength*2];
 		memset(statisticRecord, 0, 190 * (maxLength * 2) * sizeof(int));
@@ -71,6 +71,7 @@ void Image::houghTransform(IplImage *src, vector<Lines> *lineCollector, int thre
 			for(int j=0; j<height; j++)
 			{
 				uchar gray=((uchar*)(src->imageData + src->widthStep*j))[i];
+			//	cout<<(int)gray<<endl;
 				if(gray == 255)
 				{
 					for(int k=0; k<=180; k++)
@@ -111,6 +112,7 @@ void Image::houghTransform(IplImage *src, vector<Lines> *lineCollector, int thre
 		}
 
 		sort(linesPolarCollector.begin(), linesPolarCollector.end(), cmp);
+	
 		int lineMax = MIN(linesTotal, limit);
 		lineCollector->clear();
 		for(int i=0; i<lineMax; i++)
@@ -237,6 +239,33 @@ void Image::medianFilter(IplImage *src)
 				}
 				int mid = find(record, 0, 8);
 				((uchar*)(src->imageData + src->widthStep*j))[i] = mid;
+			}
+		}
+	}
+}
+
+void Image::sobel(IplImage *src, IplImage *dst)
+{
+	int temp[3] = {-3, 0, 3};
+	int height = src->height;
+	int width = src->widthStep;
+	for(int i = 0; i < width; i++)
+	{
+		for(int j = 0; j < height; j++)
+		{
+			if(i - 1 >= 0 && i + 1 <width) 
+			{
+				int a = ((uchar*)(src->imageData + src->widthStep*j))[i-1] * temp[0];
+				int b = ((uchar*)(src->imageData + src->widthStep*j))[i] * temp[1];
+				int c = ((uchar*)(src->imageData + src->widthStep*j))[i+1] * temp[2];
+				if(a+b+c>250)
+				{
+					((uchar*)(dst->imageData +dst->widthStep*j))[i] = 255;
+				}
+				else
+				{
+					((uchar*)(dst->imageData +dst->widthStep*j))[i] = 0;
+				}
 			}
 		}
 	}
