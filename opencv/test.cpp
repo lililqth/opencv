@@ -33,8 +33,8 @@ inline bool Judge(int actual, int standard, int threshold)
 
 int main(int argc, char *argv[])  
 {  
-	CvCapture* capture=cvCreateFileCapture("../13.avi");  
-//	VideoWriter writer("VideoTest.avi", CV_FOURCC('M', 'J', 'P', 'G'), 25.0, Size(640, 480));  
+	CvCapture* capture=cvCreateFileCapture("../14.avi");  
+	//	VideoWriter writer("VideoTest.avi", CV_FOURCC('M', 'J', 'P', 'G'), 25.0, Size(640, 480));  
 	IplImage *thetaPic = cvCreateImage(cvSize(180, 500),IPL_DEPTH_8U,1);//画布用于绘制角度分布图
 	IplImage *lengthPic = cvCreateImage(cvSize(1000, 500),IPL_DEPTH_8U,1);//画布用于绘制角度分布图
 	IplImage* frame;    //视频图像
@@ -198,19 +198,18 @@ int main(int argc, char *argv[])
 						double a = cos(theta/180*CV_PI), b = sin(theta/180*CV_PI);  
 						double x0 = a*rho, y0 = b*rho;  
 						pt1.x = cvRound(x0 + 1000*(-b));
-
 						pt1.y = cvRound(y0 + 1000*(a)) + size.height;  
 						while(pt1.y < size.height)
 						{
-							pt1.x -= 100*(-(int)b);
-							pt1.y -= 100*((int)a);
+							pt1.x -= 100*(-b);
+							pt1.y -= 100*(a);
 						}
 						pt2.x = cvRound(x0 - 1000*(-b));  
 						pt2.y = cvRound(y0 - 1000*(a)) + size.height;  
 						while(pt2.y < size.height)
 						{
-							pt2.y += 100*((int)a);
-							pt2.x += 100*(-(int)b);
+							pt2.y += 100*(a);
+							pt2.x += 100*(-b);
 						}
 						cvLine( frame, pt1, pt2, CV_RGB(255, 255, 255), 3, CV_AA, 0);  
 						if(i==0)
