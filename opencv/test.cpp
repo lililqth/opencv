@@ -4,13 +4,14 @@ const int thresholdTheta = 10;				/*两帧之间的角度差限制*/
 const int thresholdLength = 10;				/*两帧之间的R差限制*/
 const int offsetThresholdTheta = 15;		/*与初始角度值偏差的限制*/
 const int offsetThresholdLength = 15;		/*与初始R偏差的限制*/
+const float updateProportion = 0;			/*目标更新权重*/
 vector<int> thetaStatus(180);
 vector<int> lengthStatus(1000);
 void ShowStatus(IplImage *canvas, vector<int> *status)
 {
 	int buttom = canvas->height-2;	
 	int i=0;
-	for( vector<int>::iterator iter = status->begin(); iter!= status->end(); iter++)
+	for ( vector<int>::iterator iter = status->begin(); iter!= status->end(); iter++)
 	{
 		cvLine(canvas, cvPoint(i, buttom), cvPoint(i, buttom - *iter), CV_RGB(0, 0, 255),1, CV_AA, 0);
 		i++;
@@ -24,7 +25,7 @@ bool cmp(int a, int b)
 
 inline bool Judge(int actual, int standard, int threshold)
 {
-	if(abs(standard - actual) < threshold)
+	if (abs(standard - actual) < threshold)
 	{
 		return true;
 	}
@@ -34,7 +35,7 @@ inline bool Judge(int actual, int standard, int threshold)
 int main(int argc, char *argv[])  
 {  
 	CvCapture* capture=cvCreateFileCapture("../14.avi");  
-	//	VideoWriter writer("VideoTest.avi", CV_FOURCC('M', 'J', 'P', 'G'), 25.0, Size(640, 480));  
+	//VideoWriter writer("VideoTest.avi", CV_FOURCC('M', 'J', 'P', 'G'), 25.0, Size(640, 480));  
 	IplImage *thetaPic = cvCreateImage(cvSize(180, 500),IPL_DEPTH_8U,1);//画布用于绘制角度分布图
 	IplImage *lengthPic = cvCreateImage(cvSize(1000, 500),IPL_DEPTH_8U,1);//画布用于绘制角度分布图
 	IplImage* frame;    //视频图像
@@ -44,10 +45,10 @@ int main(int argc, char *argv[])
 	std::vector<int> maxTheta;
 	fstream fin("recordTheta.txt", ios::in || ios::out);
 	char buffer[100];
-	while(!(fin.eof() || !fin.is_open()))
+	while (!(fin.eof() || !fin.is_open()))
 	{
 		fin>>buffer;
-		if(strcmp(buffer,""))
+		if (strcmp(buffer,""))
 		{
 			maxTheta.push_back(atoi(buffer));
 		}
@@ -57,10 +58,10 @@ int main(int argc, char *argv[])
 	//从文件读取频率最大的长度
 	vector<int> maxLength;
 	fin.open("recordLength.txt", ios::in || ios::out);
-	while(!(fin.eof() || !fin.is_open()))
+	while (!(fin.eof() || !fin.is_open()))
 	{
 		fin>>buffer;
-		if(strcmp(buffer,""))
+		if (strcmp(buffer,""))
 		{
 			maxLength.push_back(atoi(buffer));
 
@@ -73,32 +74,44 @@ int main(int argc, char *argv[])
 	int originThetaLeft;
 	int originLengthRight;
 	int originLengthLeft;
-	int leftThetaPre = originThetaLeft = maxTheta[0];
-	int rightThetaPre = originThetaRight= maxTheta[1];
-	int leftLengthPre = originLengthLeft = maxLength[0];
-	int rightLengthPre = originLengthRight = maxLength[1];
+	int leftThetaPre;
+	int rightThetaPre;
+	int leftLengthPre;
+	int rightLengthPre;
+	int cumulateFlag = false;
+	if (maxTheta.size() > 0 && maxLength.size() > 0)
+	{
+		leftThetaPre = originThetaLeft = maxTheta[0];
+		rightThetaPre = originThetaRight= maxTheta[1];
+		leftLengthPre = originLengthLeft = maxLength[0];
+		rightLengthPre = originLengthRight = maxLength[1];
+	}
+	else
+	{
+		cumulateFlag = true;
+	}
 	bool findFlag[2] = {false, false};
 	Lines leftLinePre = Lines(), rightLinePre = Lines();
-	while(1)  
+	while (1)  
 	{  
 
-		if(firstTime == false)
+		if (firstTime == false && cumulateFlag == false)
 		{
 			maxTheta.clear();
 			maxLength.clear();
-			if(!Judge(leftThetaPre, originThetaLeft, offsetThresholdTheta))
+			if (!Judge(leftThetaPre, originThetaLeft, offsetThresholdTheta))
 			{
 				leftThetaPre = originThetaLeft;
 			}
-			if(!Judge(rightThetaPre, originThetaRight, offsetThresholdTheta))
+			if (!Judge(rightThetaPre, originThetaRight, offsetThresholdTheta))
 			{
 				rightThetaPre = originThetaRight;
 			}
-			if(!Judge(leftLengthPre, originLengthLeft, offsetThresholdLength))
+			if (!Judge(leftLengthPre, originLengthLeft, offsetThresholdLength))
 			{
 				leftLengthPre = originLengthLeft;
 			}
-			if(!Judge(rightLengthPre, originLengthRight, offsetThresholdLength))
+			if (!Judge(rightLengthPre, originLengthRight, offsetThresholdLength))
 			{
 				rightLengthPre = originLengthRight;
 			}
@@ -108,11 +121,13 @@ int main(int argc, char *argv[])
 			maxLength.push_back(rightLengthPre);
 		} 
 		frame=cvQueryFrame(capture);  
-		if(!frame) 
+		if (!frame) 
 		{
 			break;  
 		}
 		dst = cvCreateImage(cvGetSize(frame),IPL_DEPTH_8U,1) ;    
+
+		cvShowImage("原图", frame);
 
 		//灰度化
 		img.Graying(frame, dst);
@@ -147,7 +162,7 @@ int main(int argc, char *argv[])
 
 		//霍夫变换
 		vector<Lines> *linesSeq = new vector<Lines>;
-		if(maxTheta.size() == 0 || maxLength.size() == 0)
+		if (maxTheta.size() == 0 || maxLength.size() == 0)
 		{
 			img.houghTransform(dst, linesSeq, 60);
 		}
@@ -155,21 +170,21 @@ int main(int argc, char *argv[])
 		{
 			img.houghTransform(dst, linesSeq, 10);
 		}
-		for(vector<Lines>::iterator iter = linesSeq->begin(); iter != linesSeq->end() && (findFlag[0]==false || findFlag[1] == false); iter++)  
+		for (vector<Lines>::iterator iter = linesSeq->begin(); iter != linesSeq->end()/* && (findFlag[0]==false || findFlag[1] == false)*/; iter++)  
 		{  
 			double rho = iter->r;
 			double theta = iter->theta/CV_PI*180.0;
 			//如果是第一次运行，就对频率进行统计。
-			if(maxTheta.size() == 0)
+			if (maxTheta.size() == 0)
 			{
 				//统计角度分布
 				thetaStatus[(int)theta]++;
 				ShowStatus(thetaPic, &thetaStatus);
 				cvShowImage("角度统计信息", thetaPic);
 			}
-			else if(maxLength.size() == 0)
+			else if (maxLength.size() == 0)
 			{
-				if(rho+500>=0 && rho+500<1000)
+				if (rho+500>=0 && rho+500<1000)
 				{
 					lengthStatus[(int)(rho + 500)]++;
 					ShowStatus(lengthPic, &lengthStatus);
@@ -179,17 +194,17 @@ int main(int argc, char *argv[])
 			else
 			{
 				//如果不是第一次运行就根据出现频率最大的2个区域进行过滤。
-				for(int i=0; i<(int)maxTheta.size(); i++)
+				for (int i=0; i<(int)maxTheta.size(); i++)
 				{
-					if(findFlag[i]==false && Judge((int)theta, maxTheta[i], thresholdTheta) && Judge((int)rho, maxLength[i]-500, thresholdLength))
+					if (findFlag[i]==false && Judge((int)theta, maxTheta[i], thresholdTheta) && Judge((int)rho, maxLength[i]-500, thresholdLength))
 					{		
 						findFlag[i] = true;
-						if(i == 0)
+						if (i == 0)
 						{
 							leftThetaPre = (int)theta;
 							leftLengthPre = (int)rho + 500;
 						}
-						else if(i == 1)
+						else if (i == 1)
 						{
 							rightThetaPre = (int)theta;
 							rightLengthPre = (int)rho + 500;
@@ -199,40 +214,56 @@ int main(int argc, char *argv[])
 						double x0 = a*rho, y0 = b*rho;  
 						pt1.x = cvRound(x0 + 1000*(-b));
 						pt1.y = cvRound(y0 + 1000*(a)) + size.height;  
-						while(pt1.y < size.height)
+						while (pt1.y < size.height)
 						{
 							pt1.x -= 100*(-b);
 							pt1.y -= 100*(a);
 						}
 						pt2.x = cvRound(x0 - 1000*(-b));  
 						pt2.y = cvRound(y0 - 1000*(a)) + size.height;  
-						while(pt2.y < size.height)
+						while (pt2.y < size.height)
 						{
 							pt2.y += 100*(a);
 							pt2.x += 100*(-b);
 						}
 						cvLine( frame, pt1, pt2, CV_RGB(255, 255, 255), 3, CV_AA, 0);  
-						if(i==0)
+						if (i==0)
 						{
 							leftLinePre = Lines(pt1, pt2);
+							leftLinePre.theta = theta;
+							leftLinePre.r = rho;
 						}
-						if(i==1)
+						if (i==1)
 						{
 							rightLinePre = Lines(pt1, pt2);
+							rightLinePre.theta = theta;
+							rightLinePre.r = rho;
 						}
 						break;
 					}
 				}
 			}
 		} 
-		if(findFlag[0] == false)
+		if (findFlag[0] == false)
 		{
 			cvLine( frame, leftLinePre.start, leftLinePre.end, CV_RGB(255, 255, 255), 3, CV_AA, 0);  
 		}
-		if(findFlag[1] == false)
+		else
+		{
+			originLengthLeft = updateProportion * (leftLinePre.r+500) + (1 - updateProportion) * originLengthLeft;
+			originThetaLeft = updateProportion * leftLinePre.theta + (1 - updateProportion) * originThetaLeft;
+		}
+
+		if (findFlag[1] == false)
 		{
 			cvLine( frame, rightLinePre.start, rightLinePre.end, CV_RGB(255, 255, 255), 3, CV_AA, 0);  
 		}
+		else
+		{
+			originLengthRight = updateProportion * (rightLinePre.r + 500) + (1 - updateProportion) * originLengthRight;
+			originThetaRight = updateProportion * rightLinePre.theta + (1 - updateProportion) * originThetaRight;
+		}
+
 		firstTime = false;
 		findFlag[0] = false;
 		findFlag[1] = false;
@@ -241,21 +272,21 @@ int main(int argc, char *argv[])
 		cvReleaseImage(&dst);
 		//writer << frame;
 		char c=cvWaitKey(10);
-		if(c==27) break;  
+		if (c==27) break;  
 	}  
 
 	//绘制角度长度统计信息 找出四条最高的  并写入文件
 	vector<int> statusCopy(thetaStatus);
 	ofstream fout;
 	bool flag = false;
-	if(maxTheta.size()==0)
+	if (maxTheta.size()==0)
 	{
 		flag = true;
 		sort(statusCopy.begin(), statusCopy.end(),cmp);
 		fout.open("recordTheta.txt", ios::out);
-		for(size_t i=0; i<thetaStatus.size(); i++)
+		for (size_t i=0; i<thetaStatus.size(); i++)
 		{
-			if(thetaStatus[i] == statusCopy[0] || thetaStatus[i] == statusCopy[1] 
+			if (thetaStatus[i] == statusCopy[0] || thetaStatus[i] == statusCopy[1] 
 			|| thetaStatus[i] == statusCopy[2] || thetaStatus[i] == statusCopy[3])
 			{
 				fout<<i<<endl;
@@ -263,15 +294,15 @@ int main(int argc, char *argv[])
 		}
 		fout.close();
 	}
-	if(maxLength.size() == 0 && flag == false)
+	if (maxLength.size() == 0 && flag == false)
 	{
 		statusCopy = lengthStatus;
 		sort(statusCopy.begin(), statusCopy.end(),cmp);
 		ofstream fout;
 		fout.open("recordLength.txt", ios::out);
-		for(size_t i=0; i<lengthStatus.size(); i++)
+		for (size_t i=0; i<lengthStatus.size(); i++)
 		{
-			if(lengthStatus[i] == statusCopy[0] || lengthStatus[i] == statusCopy[1] 
+			if (lengthStatus[i] == statusCopy[0] || lengthStatus[i] == statusCopy[1] 
 			|| lengthStatus[i] == statusCopy[2] || lengthStatus[i] == statusCopy[3])
 			{
 				fout<<i<<endl;

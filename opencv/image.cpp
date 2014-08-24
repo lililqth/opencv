@@ -71,21 +71,21 @@ void Image::houghTransform(IplImage *src, vector<Lines> *lineCollector, int thre
 	int (*statisticRecord)[maxLength * 2] = new int[190][maxLength*2];
 	memset(statisticRecord, 0, 190 * (maxLength * 2) * sizeof(int));
 	// 统计
-	for(int i=0; i<width; i++)
+	for (int i=0; i<width; i++)
 	{
-		for(int j=0; j<height; j++)
+		for (int j=0; j<height; j++)
 		{
 			uchar gray=((uchar*)(src->imageData + src->widthStep*j))[i];
 			//	cout<<(int)gray<<endl;
-			if(gray == 255)
+			if (gray == 255)
 			{
-				for(int k=0; k<=180; k++)
+				for (int k=0; k<=180; k++)
 				{
 					double theta = (double)((double)k/180.0)*CV_PI;
 					double costheta = cos[k];
 					double sintheta = sin[k];
 					int length = (int)((double)i*(costheta)+(double)j*sintheta) + maxLength;
-					if(length < maxLength * 2 - 1)
+					if (length < maxLength * 2 - 1)
 					{
 						statisticRecord[k][length]++;
 					}
@@ -97,11 +97,11 @@ void Image::houghTransform(IplImage *src, vector<Lines> *lineCollector, int thre
 	//保存每一条直线
 	vector<LinePolar>linesPolarCollector;
 	int linesTotal = 0;
-	for(int i = 0;i <= 180; i++)
+	for (int i = 0;i <= 180; i++)
 	{
-		for(int j = 0; j < maxLength * 2; j++)
+		for (int j = 0; j < maxLength * 2; j++)
 		{
-			if(statisticRecord[i][j] > threshold && j-1>0 && i-1>0 && j+1 < maxLength*2 && i+1 < 180
+			if (statisticRecord[i][j] > threshold && j-1>0 && i-1>0 && j+1 < maxLength*2 && i+1 < 180
 				&& statisticRecord[i][j] > statisticRecord[i][j-1] && statisticRecord[i][j] > statisticRecord[i][j+1]
 			&& statisticRecord[i][j] > statisticRecord[i-1][j] && statisticRecord[i][j] > statisticRecord[i+1][j]
 			&& statisticRecord[i][j] > statisticRecord[i-1][j-1] && statisticRecord[i][j] > statisticRecord[i+1][j+1])
@@ -120,7 +120,7 @@ void Image::houghTransform(IplImage *src, vector<Lines> *lineCollector, int thre
 
 	int lineMax = MIN(linesTotal, limit);
 	lineCollector->clear();
-	for(int i=0; i<lineMax; i++)
+	for (int i=0; i<lineMax; i++)
 	{
 		Lines l = Lines(linesPolarCollector[i].theta, linesPolarCollector[i].r);
 		lineCollector->push_back(l);
@@ -141,12 +141,12 @@ void Image::GrayStretch(IplImage *src)
 	double k1 = y1/x1;
 	double k2 = (y2-y1)/(x2-x1);
 	double k3 = (255-y2)/(255-x2);
-	for(int i=0; i< src->width; i++)
+	for (int i=0; i< src->width; i++)
 	{
-		for(int j=0; j<src->height; j++)
+		for (int j=0; j<src->height; j++)
 		{
 			uchar v=((uchar*)(src->imageData + src->widthStep*j))[i];
-			if(v > x1 && v < x2)
+			if (v > x1 && v < x2)
 			{
 				((uchar*)(src->imageData + src->widthStep*j))[i] = k2 * (v - x1) + y1;
 			}
@@ -170,16 +170,20 @@ void Image::Graying(IplImage *src, IplImage *dst)
 		}
 	}
 }
+
 /*
 二值化
+输入参数：
+IplImage *src：		输入图像
+int low, int high：	在low和high之间的像素点赋值255
 */
 void Image::Binaryzation(IplImage *src, int low, int high)
 {
-	for(int i=0; i<src->width; i++)
+	for (int i=0; i<src->width; i++)
 	{
-		for(int j=0; j<src-> height; j++){
+		for (int j=0; j<src-> height; j++){
 			uchar v=((uchar*)(src->imageData + src->widthStep*j))[i];
-			if(v >= low && v <=high)
+			if (v >= low && v <=high)
 			{
 				((uchar*)(src->imageData + src->widthStep*j))[i] = 255;
 			}
@@ -199,33 +203,34 @@ int find(int record[9], int start, int end)
 {
 	int low = start, high = end;
 	int mid = record[low];
-	while(low < high)
+	while (low < high)
 	{
-		while(low < high && record[high] >= mid)
+		while (low < high && record[high] >= mid)
 		{
 			high--;
 		}
 		record[low] = record[high];
-		while(low < high && record[low] <= mid)
+		while (low < high && record[low] <= mid)
 		{
 			low++;
 		}
 		record[high] = record[low];
 	}
 	record[low] = mid;
-	if(low == 4)
+	if (low == 4)
 	{
 		return mid;
 	}
-	else if(low > 4)
+	else if (low > 4)
 	{
 		return find(record, start, low-1);
 	}
-	else if(low < 4)
+	else if (low < 4)
 	{
 		return find(record, low+1, end);
 	}
 }
+
 /*
 中值滤波
 */
@@ -233,17 +238,17 @@ void Image::medianFilter(IplImage *src)
 {
 	int height = src->height;
 	int width = src->width;
-	for(int i = 0; i < width; i++)
+	for (int i = 0; i < width; i++)
 	{
-		for(int j = 0; j < height; j++)
+		for (int j = 0; j < height; j++)
 		{
-			if(i - 1 >= 0 && i + 1 < 9 && j - 1 >= 0 && j + 1 < 9)
+			if  (i - 1 >= 0 && i + 1 < 9 && j - 1 >= 0 && j + 1 < 9)
 			{
 				int k = 0;
 				int record[9];
-				for(int ii = i - 1; ii <= i + 1; ii++)
+				for (int ii = i - 1; ii <= i + 1; ii++)
 				{
-					for(int jj = j - 1; jj <= j + 1; jj++)
+					for (int jj = j - 1; jj <= j + 1; jj++)
 					{
 						record[k++] = ((uchar*)(src->imageData + src->widthStep*jj))[ii];
 					}
@@ -267,14 +272,14 @@ void Image::sobel(IplImage *src, IplImage *dst)
 	{
 		uchar *sData = (uchar*)(src->imageData + src->widthStep*i);
 		uchar *dData = (uchar*)(dst->imageData + dst->widthStep*i);
-		for(int j = 0; j < width; j++)
+		for (int j = 0; j < width; j++)
 		{
-			if(j - 1 >= 0 && j + 1 <width) 
+			if (j - 1 >= 0 && j + 1 <width)
 			{
 				int a = sData[j-1] * temp[0];
 				int b = sData[j] * temp[1];
 				int c = sData[j+1] * temp[2];
-				if(a+b+c>250)
+				if (a+b+c>250)
 				{
 					dData[j] = 255;
 				}
@@ -299,7 +304,7 @@ void Image::blur(IplImage *src, IplImage *dst)
 	{
 		for (int j = 0; j < height; j++)
 		{
-			if (i-1 >= 0 && i+1 <width && j-1 >= 0 && j+1 < height) 
+			if (i-1 >= 0 && i+1 <width && j-1 >= 0 && j+1 < height)
 			{
 				int x = ((uchar*)(srcCpy->imageData + srcCpy->widthStep*(j-1)))[i-1]+((uchar*)(srcCpy->imageData + srcCpy->widthStep*(j-1)))[i]
 				+((uchar*)(srcCpy->imageData + srcCpy->widthStep*(j+1)))[i]+((uchar*)(srcCpy->imageData + srcCpy->widthStep*j))[i-1]
@@ -331,7 +336,7 @@ void Image::adaptiveThreshold(IplImage *src, IplImage *dst)
 	{
 		for (int j = 0; j < height; j++)
 		{
-			if (i-1 >= 0 && i+1 <width && j-1 >= 0 && j+1 < height) 
+			if (i-1 >= 0 && i+1 <width && j-1 >= 0 && j+1 < height)
 			{
 				int x = ((uchar*)(srcCpy->imageData + srcCpy->widthStep*(j-1)))[i-1]+((uchar*)(srcCpy->imageData + srcCpy->widthStep*(j-1)))[i]
 				+((uchar*)(srcCpy->imageData + srcCpy->widthStep*(j+1)))[i]+((uchar*)(srcCpy->imageData + srcCpy->widthStep*j))[i-1]
